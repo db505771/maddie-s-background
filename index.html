@@ -12,7 +12,7 @@
             min-height: 100vh !important;
         }
 
-        /* Scrolling Background Layer */
+        /* Seamless Infinite Scrolling Layer */
         #bg-layer {
             position: absolute;
             top: 0;
@@ -21,15 +21,19 @@
             min-height: 100%;
             z-index: -1;
             pointer-events: none;
+            
+            /* Repeat the 800px smooth gradient block endlessly down the page */
+            background-repeat: repeat-y !important;
+            background-size: 100% 800px !important;
             transition: background 0.4s ease;
         }
     </style>
     <script>
-        // Formats gradient string into a seamless repeating pattern
+        // Formats gradients into a perfectly tileable 800px block
         function formatBgString(config) {
             if (config.type === "Gradient") {
-                // Repeating linear gradient seamlessly connects start and end colors
-                return `repeating-linear-gradient(135deg, ${config.color} 0%, ${config.middleColor} 50%, ${config.color} 100%)`;
+                // Notice how it starts and ends with config.color to eliminate seams
+                return `linear-gradient(180deg, ${config.color} 0%, ${config.middleColor} 50%, ${config.color} 100%)`;
             }
             return config.color;
         }
