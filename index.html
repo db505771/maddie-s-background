@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Background Viewer</title>
+    <style>
+        html, body {
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 100% !important;
+            height: 100% !important;
+            overflow: hidden;
+            transition: background 0.4s ease;
+        }
+    </style>
+</head>
+<body>
+
+    <script>
+        const API_URL = "https://script.google.com/macros/s/AKfycbxGXgGP01t8ogK6yweY9FRuWa2SusKGx52RwJs0gtrO92pI9Bz-ZXlVpqVVO51i6uCxvQ/exec";
+
+        async function applyCurrentBackground() {
+            try {
+                const response = await fetch(API_URL);
+                const data = await response.json();
+
+                if (data.success && data.equipped) {
+                    const config = data.equipped;
+
+                    if (config.type === "Gradient") {
+                        document.body.style.background = `linear-gradient(135deg, ${config.color}, ${config.middleColor}, ${config.endColor})`;
+                    } else {
+                        document.body.style.background = config.color;
+                    }
+                }
+            } catch (err) {
+                console.error("Failed to fetch background data:", err);
+            }
+        }
+
+        applyCurrentBackground();
+    </script>
+</body>
+</html>
