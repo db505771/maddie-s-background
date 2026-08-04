@@ -5,22 +5,37 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Background Viewer</title>
     <style>
-        html, body {
+        html {
+            min-height: 100% !important;
+            height: auto !important;
+        }
+
+        body {
             margin: 0 !important;
             padding: 0 !important;
             width: 100% !important;
-            height: 100% !important;
-            overflow: hidden;
+            min-height: 100vh !important;
+            overflow-x: hidden;
+            
+            /* Fixes background cut-off and color shift when scrolling */
+            background-attachment: fixed !important;
+            background-repeat: no-repeat !important;
+            background-size: cover !important;
+            
+            transition: background 0.4s ease;
         }
     </style>
     <script>
-        // 1. Check URL parameters first (Instant 0ms execution)
+        // 1. Instant check: Check URL parameter first (0ms load)
         const params = new URLSearchParams(window.location.search);
-        const urlBg = params.get('bg'); // e.g. viewer.html?bg=3498db or viewer.html?bg=gradient
+        const urlBg = params.get('bg');
+        
+        // 2. Secondary check: Check local storage cache
         const cachedBg = localStorage.getItem('equipped_bg');
 
         if (urlBg) {
-            document.documentElement.style.background = urlBg.startsWith('#') ? urlBg : '#' + urlBg;
+            const formattedBg = urlBg.startsWith('#') || urlBg.startsWith('linear-gradient') ? urlBg : '#' + urlBg;
+            document.documentElement.style.background = formattedBg;
         } else if (cachedBg) {
             document.documentElement.style.background = cachedBg;
         }
@@ -31,26 +46,33 @@
     <script>
         const API_URL = "https://script.google.com/macros/s/AKfycbxGXgGP01t8ogK6yweY9FRuWa2SusKGx52RwJs0gtrO92pI9Bz-ZXlVpqVVO51i6uCxvQ/exec";
 
-        // Background check to keep cache fresh
-        async function fetchBackground() {
+        async function syncBackground() {
             try {
                 const response = await fetch(API_URL);
                 const data = await response.json();
 
                 if (data.success && data.equipped) {
                     const config = data.equipped;
-                    const bgStyle = (config.type === "Gradient")
-                        ? `linear-gradient(135deg, ${config.color}, ${config.middleColor}, ${config.endColor})`
-                        : config.color;
+                    let bgStyle = config.color;
 
-                    document.body.style.background = bgStyle;
+                    if (config.type === "Gradient") {
+                        bgStyle = `linear-gradient(135deg, ${config.color}, ${config.middleColor}, ${config.endColor})`;
+                    }
+
+                    // Apply styles to both html and body to cover the entire document
                     document.documentElement.style.background = bgStyle;
+                    document.body.style.background = bgStyle;
+
+                    // Update local cache for instant future loads
                     localStorage.setItem('equipped_bg', bgStyle);
                 }
-            } catch (e) {}
+            } catch (err) {
+                console.error("Failed to sync background from Apps Script:", err);
+            }
         }
 
-        fetchBackground();
+        // Fetch latest state from Google Sheets in the background
+        syncBackground();
     </script>
 </body>
 </html>
