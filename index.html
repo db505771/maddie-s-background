@@ -5,43 +5,52 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Background Viewer</title>
     <style>
-        html {
-            min-height: 100% !important;
-            height: auto !important;
-        }
-
-        body {
+        html, body {
             margin: 0 !important;
             padding: 0 !important;
             width: 100% !important;
             min-height: 100vh !important;
-            overflow-x: hidden;
-            
-            /* Fixes background cut-off and color shift when scrolling */
-            background-attachment: fixed !important;
-            background-repeat: no-repeat !important;
-            background-size: cover !important;
-            
+        }
+
+        /* Scrolling Background Layer */
+        #bg-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            min-height: 100%;
+            z-index: -1;
+            pointer-events: none;
             transition: background 0.4s ease;
         }
     </style>
     <script>
-        // 1. Instant check: Check URL parameter first (0ms load)
-        const params = new URLSearchParams(window.location.search);
-        const urlBg = params.get('bg');
-        
-        // 2. Secondary check: Check local storage cache
-        const cachedBg = localStorage.getItem('equipped_bg');
-
-        if (urlBg) {
-            const formattedBg = urlBg.startsWith('#') || urlBg.startsWith('linear-gradient') ? urlBg : '#' + urlBg;
-            document.documentElement.style.background = formattedBg;
-        } else if (cachedBg) {
-            document.documentElement.style.background = cachedBg;
+        // Formats gradient string into a seamless repeating pattern
+        function formatBgString(config) {
+            if (config.type === "Gradient") {
+                // Repeating linear gradient seamlessly connects start and end colors
+                return `repeating-linear-gradient(135deg, ${config.color} 0%, ${config.middleColor} 50%, ${config.color} 100%)`;
+            }
+            return config.color;
         }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const bgLayer = document.getElementById('bg-layer');
+            const params = new URLSearchParams(window.location.search);
+            const urlBg = params.get('bg');
+            const cachedBg = localStorage.getItem('equipped_bg');
+
+            if (urlBg) {
+                bgLayer.style.background = urlBg.startsWith('#') || urlBg.includes('gradient') ? urlBg : '#' + urlBg;
+            } else if (cachedBg) {
+                bgLayer.style.background = cachedBg;
+            }
+        });
     </script>
 </head>
 <body>
+
+    <div id="bg-layer"></div>
 
     <script>
         const API_URL = "https://script.google.com/macros/s/AKfycbxGXgGP01t8ogK6yweY9FRuWa2SusKGx52RwJs0gtrO92pI9Bz-ZXlVpqVVO51i6uCxvQ/exec";
@@ -52,26 +61,20 @@
                 const data = await response.json();
 
                 if (data.success && data.equipped) {
-                    const config = data.equipped;
-                    let bgStyle = config.color;
+                    const bgStyle = formatBgString(data.equipped);
+                    const bgLayer = document.getElementById('bg-layer');
 
-                    if (config.type === "Gradient") {
-                        bgStyle = `linear-gradient(135deg, ${config.color}, ${config.middleColor}, ${config.endColor})`;
+                    if (bgLayer) {
+                        bgLayer.style.background = bgStyle;
                     }
 
-                    // Apply styles to both html and body to cover the entire document
-                    document.documentElement.style.background = bgStyle;
-                    document.body.style.background = bgStyle;
-
-                    // Update local cache for instant future loads
                     localStorage.setItem('equipped_bg', bgStyle);
                 }
             } catch (err) {
-                console.error("Failed to sync background from Apps Script:", err);
+                console.error("Failed to sync background:", err);
             }
         }
 
-        // Fetch latest state from Google Sheets in the background
         syncBackground();
     </script>
 </body>
