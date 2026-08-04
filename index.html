@@ -11,35 +11,50 @@
             width: 100% !important;
             height: 100% !important;
             overflow: hidden;
+            background: #ffffff; /* Default immediate color before sync */
             transition: background 0.4s ease;
         }
     </style>
+    <script>
+        // Apply stored background instantly before the HTML body even finishes rendering
+        (function() {
+            const cachedBg = localStorage.getItem('equipped_bg');
+            if (cachedBg) {
+                document.documentElement.style.background = cachedBg;
+            }
+        })();
+    </script>
 </head>
 <body>
 
     <script>
         const API_URL = "https://script.google.com/macros/s/AKfycbxGXgGP01t8ogK6yweY9FRuWa2SusKGx52RwJs0gtrO92pI9Bz-ZXlVpqVVO51i6uCxvQ/exec";
 
-        async function applyCurrentBackground() {
+        async function syncBackground() {
             try {
                 const response = await fetch(API_URL);
                 const data = await response.json();
 
                 if (data.success && data.equipped) {
                     const config = data.equipped;
+                    let bgStyle = config.color;
 
                     if (config.type === "Gradient") {
-                        document.body.style.background = `linear-gradient(135deg, ${config.color}, ${config.middleColor}, ${config.endColor})`;
-                    } else {
-                        document.body.style.background = config.color;
+                        bgStyle = `linear-gradient(135deg, ${config.color}, ${config.middleColor}, ${config.endColor})`;
                     }
+
+                    // Apply updated background and cache it for future instant loads
+                    document.body.style.background = bgStyle;
+                    document.documentElement.style.background = bgStyle;
+                    localStorage.setItem('equipped_bg', bgStyle);
                 }
             } catch (err) {
-                console.error("Failed to fetch background data:", err);
+                console.error("Failed to sync background:", err);
             }
         }
 
-        applyCurrentBackground();
+        // Fetch fresh state from Google Sheets in the background
+        syncBackground();
     </script>
 </body>
 </html>
