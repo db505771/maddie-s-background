@@ -12,42 +12,65 @@
             min-height: 100vh !important;
         }
 
-        /* Seamless Infinite Scrolling Layer */
+        /* Fixed Infinite Scrolling Layer */
         #bg-layer {
-            position: absolute;
+            position: fixed; /* Keeps background smooth while scrolling page content */
             top: 0;
             left: 0;
-            width: 100%;
-            min-height: 100%;
+            width: 100vw;
+            height: 100vh;
             z-index: -1;
             pointer-events: none;
             
             /* Repeat the 800px smooth gradient block endlessly down the page */
             background-repeat: repeat-y !important;
             background-size: 100% 800px !important;
-            transition: background 0.4s ease;
+            transition: background-image 0.4s ease;
         }
     </style>
     <script>
-        // Formats gradients into a perfectly tileable 800px block
+        // Formats gradients into a perfectly tileable block
         function formatBgString(config) {
-            if (config.type === "Gradient") {
-                // Notice how it starts and ends with config.color to eliminate seams
+            if (typeof config === "object" && config.type === "Gradient") {
+                // Starts and ends with config.color to eliminate horizontal seam lines
                 return `linear-gradient(180deg, ${config.color} 0%, ${config.middleColor} 50%, ${config.color} 100%)`;
             }
-            return config.color;
+            if (typeof config === "string") {
+                if (config.startsWith('#') || config.includes('gradient')) {
+                    return config;
+                }
+                return '#' + config;
+            }
+            return config.color || '#ffffff';
+        }
+
+        function applyBackground(bgValue) {
+            const bgLayer = document.getElementById('bg-layer');
+            if (!bgLayer) return;
+
+            const formattedBg = formatBgString(bgValue);
+
+            // Use backgroundImage so we don't wipe out background-size or background-repeat
+            if (formattedBg.includes('gradient')) {
+                bgLayer.style.backgroundImage = formattedBg;
+            } else {
+                bgLayer.style.backgroundColor = formattedBg;
+            }
         }
 
         document.addEventListener("DOMContentLoaded", () => {
-            const bgLayer = document.getElementById('bg-layer');
             const params = new URLSearchParams(window.location.search);
             const urlBg = params.get('bg');
             const cachedBg = localStorage.getItem('equipped_bg');
 
             if (urlBg) {
-                bgLayer.style.background = urlBg.startsWith('#') || urlBg.includes('gradient') ? urlBg : '#' + urlBg;
+                applyBackground(urlBg);
             } else if (cachedBg) {
-                bgLayer.style.background = cachedBg;
+                try {
+                    applyBackground(JSON.parse(cachedBg));
+                } catch (e) {
+                    applyBackground(cachedBg);
+                }
             }
         });
     </script>
@@ -65,14 +88,8 @@
                 const data = await response.json();
 
                 if (data.success && data.equipped) {
-                    const bgStyle = formatBgString(data.equipped);
-                    const bgLayer = document.getElementById('bg-layer');
-
-                    if (bgLayer) {
-                        bgLayer.style.background = bgStyle;
-                    }
-
-                    localStorage.setItem('equipped_bg', bgStyle);
+                    applyBackground(data.equipped);
+                    localStorage.setItem('equipped_bg', typeof data.equipped === 'object' ? JSON.stringify(data.equipped) : data.equipped);
                 }
             } catch (err) {
                 console.error("Failed to sync background:", err);
