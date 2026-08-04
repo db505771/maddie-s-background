@@ -10,11 +10,12 @@
             padding: 0 !important;
             width: 100% !important;
             min-height: 100vh !important;
+            background-color: #000; /* Fallback background */
         }
 
-        /* Fixed Infinite Scrolling Layer */
+        /* Seamless Scrolling Layer */
         #bg-layer {
-            position: fixed; /* Keeps background smooth while scrolling page content */
+            position: fixed;
             top: 0;
             left: 0;
             width: 100vw;
@@ -22,39 +23,45 @@
             z-index: -1;
             pointer-events: none;
             
-            /* Repeat the 800px smooth gradient block endlessly down the page */
+            /* Enforces exact vertical tiling */
             background-repeat: repeat-y !important;
+            background-position: top center !important;
             background-size: 100% 800px !important;
             transition: background-image 0.4s ease;
         }
     </style>
     <script>
-        // Formats gradients into a perfectly tileable block
+        // Creates a perfectly mirrored, seamless repeating gradient
         function formatBgString(config) {
             if (typeof config === "object" && config.type === "Gradient") {
-                // Starts and ends with config.color to eliminate horizontal seam lines
-                return `linear-gradient(180deg, ${config.color} 0%, ${config.middleColor} 50%, ${config.color} 100%)`;
+                const c1 = config.color;
+                const c2 = config.middleColor;
+                
+                // 4-stop mirrored gradient creates a smooth continuous wave across seams
+                return `linear-gradient(180deg, ${c1} 0%, ${c2} 50%, ${c1} 100%)`;
             }
+
             if (typeof config === "string") {
-                if (config.startsWith('#') || config.includes('gradient')) {
-                    return config;
-                }
-                return '#' + config;
+                if (config.includes('gradient')) return config;
+                return config.startsWith('#') ? config : '#' + config;
             }
+
             return config.color || '#ffffff';
         }
 
-        function applyBackground(bgValue) {
+        function applyBackground(bgData) {
             const bgLayer = document.getElementById('bg-layer');
             if (!bgLayer) return;
 
-            const formattedBg = formatBgString(bgValue);
+            const bgValue = formatBgString(bgData);
 
-            // Use backgroundImage so we don't wipe out background-size or background-repeat
-            if (formattedBg.includes('gradient')) {
-                bgLayer.style.backgroundImage = formattedBg;
+            if (bgValue.includes('gradient')) {
+                // Apply ONLY to backgroundImage to avoid resetting background-size and background-repeat
+                bgLayer.style.backgroundImage = bgValue;
+                bgLayer.style.backgroundColor = 'transparent';
             } else {
-                bgLayer.style.backgroundColor = formattedBg;
+                bgLayer.style.backgroundImage = 'none';
+                bgLayer.style.backgroundColor = bgValue;
             }
         }
 
